@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EASTGATE — Street Stories</title>
+<style>
+  :root { --amber:#f2a33a; --ink:#17110c; --paper:#f3e4c2; --red:#c8372d; --green:#6fcf54; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#000; font-family:"Arial Narrow",Arial,sans-serif; color:var(--paper); user-select:none; }
+  canvas#view { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  .hidden { display:none !important; }
+  .title { font-family:Impact,"Arial Black",sans-serif; letter-spacing:3px; text-transform:uppercase; text-shadow:3px 3px 0 #000; }
+  #loading { position:fixed; inset:0; background:#120d09; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:50; gap:16px; }
+  #loading .bar { width:340px; height:10px; background:#2b2118; border:2px solid #000; } #loading .bar i { display:block; height:100%; width:0; background:var(--amber); }
+  #loading small { opacity:.7; max-width:520px; text-align:center; }
+  #menu { position:fixed; inset:0; z-index:20; display:flex; justify-content:space-between; padding:4vh 4vw; background:linear-gradient(90deg,rgba(10,6,3,.85) 0%,rgba(10,6,3,.35) 45%,rgba(10,6,3,0) 70%); }
+  #menu h1 { font-size:min(9vw,84px); margin:0; color:var(--amber); line-height:.9; } #menu h2 { margin:.2em 0 1em; font-size:20px; opacity:.85; letter-spacing:6px; font-weight:400; }
+  .mbtn { display:block; width:280px; margin:8px 0; padding:12px 18px; background:rgba(0,0,0,.55); border:2px solid #000; color:var(--paper); font:700 22px Impact,sans-serif; letter-spacing:2px; text-align:left; cursor:pointer; text-transform:uppercase; }
+  .mbtn:hover { background:var(--amber); color:#000; } .mbtn:disabled { opacity:.35; pointer-events:none; }
+  #charPanel { align-self:flex-end; width:min(380px,40vw); background:rgba(0,0,0,.6); border:2px solid #000; padding:14px; }
+  #charList { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .chip { padding:6px 10px; background:#2b2118; border:2px solid #000; cursor:pointer; font-weight:700; } .chip.sel { background:var(--amber); color:#000; }
+  #charInfo b { font:24px Impact,sans-serif; letter-spacing:2px; color:var(--amber); } #charInfo p { margin:.4em 0 0; line-height:1.3; }
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+  #minimap { position:absolute; left:22px; bottom:22px; width:170px; height:170px; border-radius:50%; border:4px solid #000; box-shadow:0 0 0 2px var(--amber); background:#222; }
+  #stats { position:absolute; right:26px; top:20px; text-align:right; }
+  #money { font:38px Impact,sans-serif; color:var(--green); text-shadow:2px 2px 0 #000,-1px -1px 0 #000; letter-spacing:2px; } #clock { font-size:20px; text-shadow:2px 2px 0 #000; }
+  .meter { width:230px; height:14px; margin:6px 0 0 auto; background:rgba(0,0,0,.6); border:2px solid #000; } .meter i { display:block; height:100%; }
+  #hpbar { background:var(--red); } #stbar { background:#e0c43b; }
+  #objective { position:absolute; right:26px; bottom:26px; max-width:360px; text-align:right; font-size:20px; text-shadow:2px 2px 0 #000; } #objective b { color:var(--amber); font-family:Impact; letter-spacing:2px; font-weight:400; }
+  #prompt { position:absolute; left:50%; bottom:22%; transform:translateX(-50%); font-size:24px; background:rgba(0,0,0,.6); padding:6px 16px; border:2px solid var(--amber); }
+  #caption { position:absolute; left:50%; bottom:11%; transform:translateX(-50%); font-size:22px; text-shadow:2px 2px 0 #000; text-align:center; max-width:70vw; }
+  #notify { position:absolute; left:50%; top:16%; transform:translateX(-50%); font:30px Impact,sans-serif; letter-spacing:3px; color:var(--amber); text-shadow:3px 3px 0 #000; text-align:center; }
+  #hint { position:absolute; left:210px; bottom:22px; font-size:13px; opacity:.75; text-shadow:1px 1px 0 #000; line-height:1.4; }
+  #enemy { position:absolute; left:50%; top:9%; transform:translateX(-50%); width:300px; text-align:center; } #enemy .meter { margin:4px auto 0; width:300px; }
+  #dialogue { position:fixed; left:50%; bottom:6%; transform:translateX(-50%); width:min(760px,92vw); z-index:15; background:rgba(15,10,6,.92); border:3px solid #000; box-shadow:0 0 0 2px var(--amber); padding:14px 18px; }
+  #dialogue .who { font:22px Impact,sans-serif; letter-spacing:2px; color:var(--amber); } #dialogue .who small { font:14px Arial; color:var(--paper); opacity:.7; margin-left:8px; } #dialogue .txt { font-size:21px; margin:8px 0 12px; line-height:1.3; }
+  #dialogue button { display:block; width:100%; text-align:left; margin:4px 0; padding:7px 12px; background:#2b2118; color:var(--paper); border:2px solid #000; font:18px "Arial Narrow",Arial; cursor:pointer; } #dialogue button:hover { background:var(--amber); color:#000; }
+  #pause,#banner,#intro { position:fixed; inset:0; z-index:30; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,.62); }
+  #banner { background:radial-gradient(rgba(0,0,0,.2),rgba(0,0,0,.8)); text-align:center; } #banner .big { font:min(12vw,110px) Impact,sans-serif; letter-spacing:6px; } #banner small { font-size:22px; }
+  #intro { background:none; justify-content:space-between; pointer-events:none; z-index:25; } #intro .bar { width:100%; height:12vh; background:#000; } #intro .txt { font:28px Georgia,serif; font-style:italic; text-align:center; text-shadow:2px 2px 0 #000; }
+  .row { display:flex; align-items:center; gap:10px; margin:6px 0; width:280px; justify-content:space-between; } input[type=range] { width:150px; }
+  #crosshair { position:absolute; left:50%; top:50%; width:6px; height:6px; margin:-3px; border-radius:50%; background:rgba(255,255,255,.55); }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<div id="loading"><div class="title" style="font-size:44px;color:var(--amber)">EASTGATE</div><div class="bar"><i id="loadBar"></i></div><div id="loadMsg">Loading character models…</div><small id="loadErr"></small></div>
+
+<div id="menu" class="hidden">
+  <div>
+    <h1 class="title">Eastgate</h1><h2 class="title">Street Stories · 2003</h2>
+    <button class="mbtn" id="btnStory">Story Mode</button>
+    <button class="mbtn" id="btnFree">Free Roam</button>
+    <button class="mbtn" id="btnContinue" disabled>Continue</button>
+    <button class="mbtn" id="btnSettings">Settings</button>
+  </div>
+  <div id="charPanel"><div class="title" style="margin-bottom:8px">Choose your character</div><div id="charList"></div><div id="charInfo"></div></div>
+</div>
+
+<div id="hud" class="hidden">
+  <div id="crosshair"></div>
+  <div id="enemy" class="hidden"><div id="enemyName" class="title" style="font-size:18px"></div><div class="meter"><i id="enemyHp" style="background:#d9822b;width:100%"></i></div></div>
+  <div id="stats"><div id="clock"></div><div id="money">$0</div><div class="meter"><i id="hpbar" style="width:100%"></i></div><div class="meter"><i id="stbar" style="width:100%"></i></div></div>
+  <canvas id="minimap" width="170" height="170"></canvas>
+  <div id="hint">WASD move · SHIFT sprint · SPACE jump · E interact/sit · LMB attack combo · V heavy · RMB block · C dodge · TAB lock-on · ESC pause</div>
+  <div id="objective"></div><div id="prompt" class="hidden"></div><div id="caption"></div><div id="notify"></div>
+</div>
+
+<div id="dialogue" class="hidden"></div>
+<div id="intro" class="hidden"><div class="bar"></div><div class="txt" id="introTxt"></div><div class="bar"></div></div>
+<div id="banner" class="hidden"><div class="big title" id="bannerBig"></div><small id="bannerSmall"></small></div>
+
+<div id="pause" class="hidden">
+  <div class="title" style="font-size:48px;margin-bottom:12px">Paused</div>
+  <button class="mbtn" id="pResume">Resume</button><button class="mbtn" id="pSave">Save Game</button><button class="mbtn" id="pLoad">Load Game</button>
+  <div class="row"><span>Master volume</span><input id="setVol" type="range" min="0" max="1" step="0.05" value="0.6"></div>
+  <div class="row"><span>Mouse sensitivity</span><input id="setSens" type="range" min="0.3" max="2.5" step="0.1" value="1"></div>
+  <div class="row"><span>Shadows</span><input id="setShadow" type="checkbox" checked></div>
+  <button class="mbtn" id="pQuit">Main Menu</button>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
